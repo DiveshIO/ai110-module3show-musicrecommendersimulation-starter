@@ -36,6 +36,12 @@ score += 1
 
 ## ![Working Code](image2.png)
 
+Phase 4: Evaluate and Explain
+
+## ![Working Code](image3.png)
+
+## ![Working Code](image4.png)
+
 ## Getting Started
 
 ### Setup

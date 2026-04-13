@@ -69,29 +69,29 @@ def load_songs(csv_path: str) -> List[Dict]:
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     """Score one song against user preferences (max 5.0) and return (score, reasons).
 
-    Scoring weights:
-      Genre match        +2.0   (exact string match)
+    Scoring weights (weight-shift experiment: genre halved, energy doubled):
+      Genre match        +1.0   (exact string match)          ← was +2.0
       Mood match         +1.5   (exact string match)
-      Energy proximity   +1.0   (1.0 - |song_energy - target_energy|, floored at 0)
+      Energy proximity   +2.0   (2.0 - 2*|song_energy - target_energy|, floored at 0)  ← was +1.0
       Acousticness fit   +0.5   (song_acousticness * 0.5, only when likes_acoustic=True)
     """
     score = 0.0
     reasons = []
 
-    # ── Genre match: +2.0 ───────────────────────────────────────────────────
+    # ── Genre match: +1.0 (halved from +2.0) ────────────────────────────────
     if song.get("genre") == user_prefs.get("favorite_genre"):
-        score += 2.0
-        reasons.append("genre match (+2.0)")
+        score += 1.0
+        reasons.append("genre match (+1.0)")
 
     # ── Mood match: +1.5 ────────────────────────────────────────────────────
     if song.get("mood") == user_prefs.get("favorite_mood"):
         score += 1.5
         reasons.append("mood match (+1.5)")
 
-    # ── Energy proximity: up to +1.0 ────────────────────────────────────────
+    # ── Energy proximity: up to +2.0 (doubled from +1.0) ────────────────────
     if "target_energy" in user_prefs and "energy" in song:
         diff = abs(song["energy"] - user_prefs["target_energy"])
-        energy_points = round(max(0.0, 1.0 - diff), 2)
+        energy_points = round(max(0.0, 2.0 - 2.0 * diff), 2)
         if energy_points > 0:
             score += energy_points
             reasons.append(f"energy close (+{energy_points})")
