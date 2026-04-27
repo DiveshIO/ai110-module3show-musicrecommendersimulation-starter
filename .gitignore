@@ -13,3 +13,9 @@ venv/
 
 # Pytest cache
 .pytest_cache/
+
+# Environment variables (keep private)
+.env
+
+# Recommender logs
+recommender.log

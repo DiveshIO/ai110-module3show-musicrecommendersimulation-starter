@@ -1,106 +1,207 @@
-# 🎧 Model Card: Music Recommender Simulation
+# Model Card — MusicMind AI Recommender
 
 ## 1. Model Name
 
-Give your model a short, descriptive name.  
-Worst Shazam Model
-We just guess randomly, but shazam is better lul
+**MusicMind AI Recommender v2.0**
+
+Built off the CodePath AI110 Module 3 project, but heavily extended.
 
 ---
 
-## 2. Intended Use
+## 2. What this thing actually does
 
-Describe what your recommender is designed to do and who it is for.
+This app recommends songs from a 491-track dataset based on what the user picks (genre, mood, energy, acoustic preference).
 
-Prompts:
+It’s mainly for the AI110 showcase, but honestly it works well enough to use for finding music.
 
-- What kind of recommendations does it generate
-  A rank list of top 5 from the csv files, score them and reason why we picked them.
+There are basically two parts:
 
-- What assumptions does it make about the user
+- A **scoring system** that ranks songs based on how well they match what the user wants
+- An optional **AI layer (Gemini 2.0 Flash)** that filters out bad matches and explains why songs were picked
 
-make assumputon abuot user preference genre which used for the rating
-
-- Is this for real users or classroom exploration
-  it's just classroom exploration where need need more data for real users usage.
+This is **not a real production recommender**. No accounts, no collaborative filtering, no real audio analysis.
 
 ---
 
-## 3. How the Model Works
+## 3. How it works
 
-Explain your scoring approach in simple language.
+### Step 1 — Scoring (always runs)
 
-Prompts:
+Every song gets a score out of 5.0 based on match:
 
-- What features of each song are used (genre, energy, mood, etc.)
-  each song have 9 attriputes
-- What user preferences are considered
-  we look at favorite genre, mood, target energy, and acoustic sound perference
+| Match                  | Points     |
+| ---------------------- | ---------- |
+| Same genre             | +2.0       |
+| Same mood              | +1.5       |
+| Energy close to target | up to +1.0 |
+| Acoustic match         | up to +0.5 |
 
-- How does the model turn those into a score
-  the modle look at each song and it gievs +1 if matches genre, 1.5 if mood, 2 if energy, .5 is acoustic
+Genre matters the most. If someone picks hip-hop, they want hip-hop — not some random rock song that “feels intense.”
 
-- What changes did you make from the starter logic
-  just added the +2 for genre those stuff only.
+Anything below ~40% match just gets filtered out completely.
+
+---
+
+### Step 2 — Rating boosts
+
+If the user interacts with songs, scores get adjusted:
+
+- Liked → +0.75 (and small boost to that genre)
+- Saved → +0.40
+- Passed → −0.75
+
+So over time, it actually starts adapting instead of staying static.
+
+---
+
+### Step 3 — Gemini AI (optional)
+
+If there’s an API key:
+
+- Gemini checks top results and removes anything that doesn’t actually fit (even if the score says it does)
+- Then it writes short explanations for why each song matches
+
+If Gemini fails or isn’t set up, nothing breaks — it just skips this part.
 
 ---
 
 ## 4. Data
 
-Describe the dataset the model uses.
+- 491 songs across 23 genres (pop, hip-hop, rock, edm, etc.)
+- Started messy, cleaned it up:
+  - Removed all fake songs
+  - Added real songs manually + bulk imports
 
-Prompts:
+- Around 27 fake/placeholder artists were removed
 
-- How many songs are in the catalog
-  18
-- What genres or moods are represented
-  15 genres: lofi, pop, rock, ambient, synthwave, jazz, indie pop, hip-hop, classical, r&b, country, metal, reggae, edm, folk.
-- Did you add or remove data
-  added 8 songs
-- Are there parts of musical taste missing in the dataset
-  there are missing musics as some have 1 songs linked
+Important limitation:
 
----
+- Audio features (energy, tempo, etc.) are **not real**
+- They’re just guessed based on genre
 
-## 5. Strengths
+Also:
 
-Where does your system seem to work well
-
-## User get their top result absed on their perference match where it was getting a good accurace score which shows it can match a good song.
-
-## 6. Limitations and Bias
-
-Where the system struggles or behaves unfairly.
-
-- The system has error with genre where almost all the genre have 1 song where if a person pick a certain genre they will only get once.
-
-## 7. Evaluation
-
-How you checked whether the recommender behaved as expected.
-
-- I train the test thought the AI model
-  where we had the model actual score and then we try to calculate the weight it needs that's how it was evualated.
+- Dataset is biased toward English pop + hip-hop
+- Stuff like jazz, classical, lofi is underrepresented
 
 ---
 
-## 8. Future Work
+## 5. What’s actually good about it
 
-Ideas for how you would improve the model next.
+- **Genre-first logic works** — you don’t get weird cross-genre garbage
+- **Filters out low-quality matches** instead of spamming results
+- Uses real songs with artwork + previews, so it feels legit
+- Doesn’t crash if APIs fail (this matters more than people think)
+- Gets better as you rate songs
 
-## Adding more data in the csv will help the model be able to train better where now it has one song liked to each genre which is not doing anything for the model.
+---
 
-## 9. Personal Reflection
+## 6. What’s weak (be honest)
 
-This was an amazing lesson where it was great that the model can change based on how we score where it was a fun lesson.
+- **Fake audio features** → energy matching is kinda unreliable
+- **No collaborative filtering** → doesn’t learn from other users
+- **Some combinations are dead zones** (like hip-hop + certain moods)
+- **Cold start problem** → new users get generic results
+- **Dataset bias** → mostly US/UK music
+- **iTunes gaps** → some songs missing previews/art
 
-What was your biggest learning moment during this project?
-Being able to see the reason was and how the AI teach me about.
+---
 
-How did using AI tools help you, and when did you need to double-check them?
-I used them to help me make them code better and ask to fix any bugess.
+## 7. Testing
 
-What surprised you about how simple algorithms can still "feel" like recommendations?
-the score system was so simple. where it just add the thing based on matching where it was easy without using complex stuff
+### Test harness
 
-What would you try next if you extended this project?
-I would try to add more user perference as it feels weak.
+Ran 8 profile-based tests:
+
+- Pop user gets pop → PASS
+- Lofi user gets lofi → PASS
+- Scores sorted correctly → PASS
+- Score never exceeds 5 → PASS
+- Unknown genre still returns results → PASS (but weak confidence)
+- Low-energy user gets calm songs → PASS
+- Acoustic preference works → PASS
+- Output format correct → PASS
+
+Average confidence: **0.89**
+
+---
+
+### Unit tests
+
+12 pytest tests on core logic — all pass.
+
+---
+
+### Manual testing
+
+Big issue before:
+
+- Mood was overpowering genre
+- Example: hip-hop + intense → returned rock/metal
+
+Fixed by making genre weight higher again.
+
+Now it behaves how people expect.
+
+---
+
+## 8. AI usage (what actually happened)
+
+Used Claude a lot during development for:
+
+- Building the Streamlit UI
+- Designing Gemini prompts
+- Debugging annoying issues (like HTML breaking on `&`)
+- Writing test harness
+- Cleaning dataset
+- Fixing scoring logic
+
+---
+
+### One thing AI got right
+
+Switching from custom HTML to native Streamlit components.
+
+The old approach broke on song titles like “Earth, Wind & Fire” because of `&`.
+
+That bug was stupid but real. Native components fixed it completely.
+
+---
+
+### One thing AI got wrong
+
+It suggested making mood more important than genre.
+
+That completely broke the system.
+
+Users picking hip-hop started getting rock songs just because they matched “intense.”
+
+Fix was obvious in hindsight:
+
+- Genre first
+- Mood second
+
+---
+
+### Biggest limitation
+
+Audio features are fake.
+
+Every pop song basically has the same energy value, which makes the energy slider kinda pointless.
+
+Real fix:
+→ integrate Spotify API for actual audio data
+
+---
+
+## 9. Future improvements
+
+- Real audio features (Spotify API)
+- Collaborative filtering
+- User accounts + persistent data
+- Better search (like “late night drive” type queries)
+- Let AI actually learn from user history, not just current input
+
+---
+
+If you want it even sharper or more aggressive, I can tighten it more. Right now this sounds like a real dev explaining their system instead of trying to impress a professor.
